@@ -6,6 +6,7 @@ struct BlockQuoteBlockView: View {
     var body: some View {
         NestedBlocksView(blocks: blocks)
             .foregroundStyle(.secondary)
+            .environment(\.markdownTextColor, .secondaryLabelColor)
             .padding(.leading, 14)
             .overlay(alignment: .leading) {
                 Capsule()

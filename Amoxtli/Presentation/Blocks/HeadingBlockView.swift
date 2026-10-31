@@ -5,24 +5,10 @@ struct HeadingBlockView: View {
     let content: InlineText
 
     var body: some View {
-        Text(content.attributedString)
-            .font(font)
-            .fontWeight(level <= 2 ? .bold : .semibold)
+        MarkdownText(content: content, style: .heading(level: level))
             .padding(.top, level <= 2 ? BlockMetrics.spacing : BlockMetrics.nestedSpacing)
-            .textSelection(.enabled)
             .accessibilityAddTraits(.isHeader)
             .accessibilityHeading(headingLevel)
-    }
-
-    private var font: Font {
-        switch level {
-        case 1: .largeTitle
-        case 2: .title
-        case 3: .title2
-        case 4: .title3
-        case 5: .headline
-        default: .subheadline
-        }
     }
 
     private var headingLevel: AccessibilityHeadingLevel {

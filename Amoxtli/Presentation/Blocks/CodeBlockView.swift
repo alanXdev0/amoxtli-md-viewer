@@ -6,16 +6,13 @@ struct CodeBlockView: View {
 
     var body: some View {
         ScrollView(.horizontal) {
-            Text(code)
-                .font(.system(.body, design: .monospaced))
+            MarkdownText(content: InlineText(runs: [InlineRun(text: code)]), style: .code, wrapsLines: false)
                 .fixedSize()
-                .textSelection(.enabled)
                 .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary, in: .rect(cornerRadius: BlockMetrics.cornerRadius))
         .accessibilityLabel(accessibilityTitle)
-        .accessibilityValue(code)
     }
 
     private var accessibilityTitle: Text {

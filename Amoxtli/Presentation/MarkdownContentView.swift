@@ -3,24 +3,43 @@ import SwiftUI
 struct MarkdownContentView: View {
     let model: MarkdownModel
 
+    @State private var links = LinkInteractionViewModel()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private let readingWidth: CGFloat = 800
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: BlockMetrics.spacing) {
-                ForEach(Array(model.blocks.enumerated()), id: \.offset) { _, block in
-                    BlockView(block: block)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: BlockMetrics.spacing) {
+                    ForEach(Array(model.blocks.enumerated()), id: \.offset) { _, block in
+                        BlockView(block: block)
+                    }
+                }
+                .frame(maxWidth: readingWidth, alignment: .leading)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 40)
+                .frame(maxWidth: .infinity)
+            }
+            .onChange(of: links.scrollRequest) { _, request in
+                if let request {
+                    scroll(to: request.blockIndex, with: proxy)
                 }
             }
-            .frame(maxWidth: readingWidth, alignment: .leading)
-            .padding(.horizontal, 32)
-            .padding(.vertical, 40)
-            .frame(maxWidth: .infinity)
         }
-        // Temporary guard until the link classifier arrives: only web and mail links reach the system.
-        .environment(\.openURL, OpenURLAction { url in
-            ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
-        })
+        .overlay { LinkStatusOverlay() }
+        .environment(links)
+        .onChange(of: model, initial: true) { _, model in
+            links.updateAnchors(HeadingAnchors(blocks: model.blocks))
+        }
+    }
+
+    private func scroll(to blockIndex: Int, with proxy: ScrollViewProxy) {
+        if reduceMotion {
+            proxy.scrollTo(blockIndex, anchor: .top)
+        } else {
+            withAnimation { proxy.scrollTo(blockIndex, anchor: .top) }
+        }
     }
 }
 
