@@ -41,6 +41,75 @@ final class LinkTrustPolicyTests: XCTestCase {
         XCTAssertEqual(policy.trust(for: try XCTUnwrap(URL(string: "https://es.wikipedia.org/wiki/Amoxtli"))), .known)
     }
 
+    // MARK: - Misleading text
+
+    private func trust(_ string: String, text: String) throws -> LinkTrust {
+        policy.trust(for: try XCTUnwrap(URL(string: string)), displayedText: text)
+    }
+
+    func testTextNamingAnotherSiteIsMisleading() throws {
+        XCTAssertEqual(
+            try trust("https://example.org/login", text: "https://www.apple.com"),
+            .misleading(claimedHost: "www.apple.com", host: "example.org")
+        )
+        XCTAssertEqual(
+            try trust("https://example.org", text: "apple.com/soporte"),
+            .misleading(claimedHost: "apple.com", host: "example.org")
+        )
+    }
+
+    func testMisleadingTextIsReportedEvenForAKnownSite() throws {
+        XCTAssertEqual(
+            try trust("https://github.com/malware", text: "apple.com"),
+            .misleading(claimedHost: "apple.com", host: "github.com")
+        )
+    }
+
+    func testDestinationThatOnlyResemblesTheTextIsMisleading() throws {
+        XCTAssertEqual(
+            try trust("https://github.com.example.org", text: "github.com"),
+            .misleading(claimedHost: "github.com", host: "github.com.example.org")
+        )
+        XCTAssertEqual(
+            try trust("https://notgithub.com", text: "github.com"),
+            .misleading(claimedHost: "github.com", host: "notgithub.com")
+        )
+    }
+
+    func testTextMatchingTheSameSiteIsNotMisleading() throws {
+        XCTAssertEqual(try trust("https://github.com/apple", text: "https://github.com"), .known)
+        XCTAssertEqual(try trust("https://github.com", text: "www.github.com"), .known)
+        XCTAssertEqual(try trust("https://www.github.com", text: "docs.github.com"), .known)
+        XCTAssertEqual(try trust("https://docs.github.com", text: "GitHub.com"), .known)
+    }
+
+    func testTextThatIsNotAnAddressClaimsNothing() throws {
+        for text in ["un enlace", "GitHub", "README.md", "archivo.swift", "v1.2", "ASP.NET", "Socket.IO", "@alan", "..."] {
+            XCTAssertEqual(try trust("https://github.com", text: text), .known, text)
+        }
+    }
+
+    func testUnknownSiteWithPlainTextIsOnlyUnknown() throws {
+        XCTAssertEqual(try trust("https://example.org", text: "Mi sitio"), .unknown(host: "example.org"))
+    }
+
+    func testMailtoMustMatchTheAddressInItsText() throws {
+        XCTAssertEqual(try trust("mailto:hola@example.org", text: "hola@example.org"), .known)
+        XCTAssertEqual(try trust("mailto:hola@example.org", text: "Escríbeme"), .known)
+        XCTAssertEqual(
+            try trust("mailto:hola@example.org", text: "soporte@apple.com"),
+            .misleading(claimedHost: "apple.com", host: "example.org")
+        )
+    }
+
+    func testOnlyUnknownSitesCanBeTrusted() throws {
+        let link = try XCTUnwrap(URL(string: "https://example.org"))
+        XCTAssertTrue(LinkWarning(link: link, host: "example.org").canBeTrusted)
+        XCTAssertFalse(LinkWarning(link: link, host: "example.org", reason: .misleadingText(claimedHost: "apple.com")).canBeTrusted)
+    }
+
+    // MARK: - Displayed link
+
     func testDisplayedLinkKeepsShortLinksWhole() throws {
         let link = try XCTUnwrap(URL(string: "https://example.com/a"))
         XCTAssertEqual(LinkWarning(link: link, host: "example.com").displayedLink, "https://example.com/a")

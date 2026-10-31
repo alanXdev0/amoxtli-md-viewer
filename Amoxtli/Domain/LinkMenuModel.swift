@@ -15,6 +15,7 @@ nonisolated struct LinkMenuModel: Equatable, Sendable {
     }
 
     let link: URL
+    var displayedText: String?
     let primaryAction: PrimaryAction
     let applications: [Application]
 }

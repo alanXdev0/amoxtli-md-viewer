@@ -24,15 +24,33 @@ struct LinkWarningAlert: LinkWarningPrompting {
         let alert = NSAlert()
         // The only style that adds the caution symbol: `.warning` just shows the app icon.
         alert.alertStyle = .critical
-        alert.messageText = String(localized: "Cuidado con este enlace")
-        alert.informativeText = String(localized: "Amoxtli no conoce el sitio \(warning.host). Ábrelo solo si confías en quien escribió este documento.\n\n\(warning.displayedLink)")
+        alert.messageText = title(for: warning)
+        alert.informativeText = String(localized: "\(explanation(for: warning)) Ábrelo solo si confías en quien escribió este documento.\n\n\(warning.displayedLink)")
         let cancel = alert.addButton(withTitle: String(localized: "Cancelar"))
         // NSAlert only gives ⎋ to a button titled "Cancel". This also takes ↩ away from the
         // buttons, so that the keyboard can't open an unknown site by accident.
         cancel.keyEquivalent = "\u{1b}"
         alert.addButton(withTitle: String(localized: "Abrir enlace"))
-        alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = String(localized: "Confiar siempre en \(warning.host)")
+        if warning.canBeTrusted {
+            alert.showsSuppressionButton = true
+            alert.suppressionButton?.title = String(localized: "Confiar siempre en \(warning.host)")
+        }
         return alert
+    }
+
+    private static func title(for warning: LinkWarning) -> String {
+        switch warning.reason {
+        case .unknownSite: String(localized: "Cuidado con este enlace")
+        case .misleadingText: String(localized: "Este enlace podría engañarte")
+        }
+    }
+
+    private static func explanation(for warning: LinkWarning) -> String {
+        switch warning.reason {
+        case .unknownSite:
+            String(localized: "Amoxtli no conoce el sitio \(warning.host).")
+        case .misleadingText(let claimedHost):
+            String(localized: "El texto dice \(claimedHost), pero el enlace lleva a \(warning.host).")
+        }
     }
 }

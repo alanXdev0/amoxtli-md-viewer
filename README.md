@@ -54,9 +54,12 @@ Un documento puede decir una cosa y enlazar a otra, así que Amoxtli no abre cua
 
 - **Se abren directo:** `apple.com`, `github.com`, `mozilla.org`, `swift.org` y `wikipedia.org`, con sus subdominios, y los sitios en los que elegiste confiar. También los links `mailto:`, porque solo crean un borrador.
 - **Muestran una alerta:** todos los demás sitios. La alerta enseña el dominio y la URL completa, y permite "Confiar siempre" en ese sitio.
+- **Muestran otra alerta, siempre:** los links cuyo texto nombra un sitio distinto de su destino, como `[apple.com](https://otro-sitio.example)`, aunque el destino sea conocido o de confianza. Esta alerta no ofrece confiar en el sitio.
 - **Nunca se abren:** los demás esquemas, como `ftp:` o `file:`.
 
 La comparación es por dominio completo: `notgithub.com` y `github.com.example.org` no cuentan como GitHub. Para borrar los sitios de confianza, usa "Olvidar sitios de confianza" en el menú de la app.
+
+Un texto cuenta como dirección si empieza con `http://`, `https://` o `www.`, si es un correo, o si termina en un dominio común en minúsculas, como `.com` o `.org`. Así, `README.md` y `ASP.NET` no disparan la alerta. Los subdominios del mismo sitio tampoco: `apple.com` puede llevar a `support.apple.com`.
 
 ## Carpetas
 

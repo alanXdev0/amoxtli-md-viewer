@@ -23,7 +23,7 @@ enum LinkContextMenu {
         switch model.primaryAction {
         case .open(let application):
             return actionItem(title: String(localized: "Abrir en \(application.name)")) { [weak links] in
-                Task { await links?.activate(link) }
+                Task { await links?.activate(link, displayedText: model.displayedText) }
             }
         case .goToSection:
             return actionItem(title: String(localized: "Ir a la sección")) { [weak links] in
@@ -39,7 +39,7 @@ enum LinkContextMenu {
     private static func openWithItem(for model: LinkMenuModel, links: LinkInteractionViewModel) -> NSMenuItem {
         let submenu = NSMenu()
         for application in model.applications {
-            submenu.addItem(applicationItem(application, link: model.link, links: links))
+            submenu.addItem(applicationItem(application, model: model, links: links))
         }
         let item = NSMenuItem(title: String(localized: "Abrir con"), action: nil, keyEquivalent: "")
         item.submenu = submenu
@@ -48,11 +48,13 @@ enum LinkContextMenu {
 
     private static func applicationItem(
         _ application: LinkMenuModel.Application,
-        link: URL,
+        model: LinkMenuModel,
         links: LinkInteractionViewModel
     ) -> NSMenuItem {
         let item = actionItem(title: application.name) { [weak links] in
-            Task { await links?.open(link, withApplicationAt: application.url) }
+            Task {
+                await links?.open(model.link, withApplicationAt: application.url, displayedText: model.displayedText)
+            }
         }
         let icon = links.applicationIcon(at: application.url)
         icon.size = iconSize

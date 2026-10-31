@@ -147,6 +147,57 @@ final class LinkInteractionViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.hoveredLink)
     }
 
+    // MARK: - Misleading text
+
+    func testMisleadingTextWarnsEvenWhenTheSiteIsKnown() async throws {
+        let link = try url("https://github.com/malware")
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: false)
+        await makeViewModel().activate(link, displayedText: "apple.com")
+        XCTAssertEqual(prompter.warnings, [
+            LinkWarning(link: link, host: "github.com", reason: .misleadingText(claimedHost: "apple.com")),
+        ])
+        XCTAssertEqual(workspace.openedLinks, [])
+    }
+
+    func testMisleadingTextWarnsEvenWhenTheSiteIsTrusted() async throws {
+        TrustedHostsStore(defaults: defaults).add("example.org")
+        await makeViewModel().activate(try url("https://example.org"), displayedText: "apple.com")
+        XCTAssertEqual(prompter.warnings.count, 1)
+    }
+
+    func testMisleadingTextWarnsWhenOpeningWithAnApplication() async throws {
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: false)
+        await makeViewModel().open(try url("https://github.com"), withApplicationAt: another, displayedText: "apple.com")
+        XCTAssertEqual(prompter.warnings.count, 1)
+        XCTAssertTrue(workspace.openedWithApplication.isEmpty)
+    }
+
+    func testOpeningAMisleadingLinkDoesNotTrustItsSite() async throws {
+        prompter.answer = LinkWarningAnswer(opens: true, alwaysTrusts: true)
+        await makeViewModel().activate(try url("https://example.org"), displayedText: "apple.com")
+        XCTAssertEqual(workspace.openedLinks.count, 1)
+        XCTAssertEqual(TrustedHostsStore(defaults: defaults).hosts, [])
+    }
+
+    func testMisleadingAlertExplainsTheMismatchAndOffersNoTrust() throws {
+        let warning = LinkWarning(
+            link: try url("https://example.org/a"),
+            host: "example.org",
+            reason: .misleadingText(claimedHost: "apple.com")
+        )
+        let alert = LinkWarningAlert.makeAlert(for: warning)
+        XCTAssertEqual(alert.messageText, "Este enlace podría engañarte")
+        XCTAssertTrue(alert.informativeText.contains("apple.com"))
+        XCTAssertTrue(alert.informativeText.contains("example.org"))
+        XCTAssertFalse(alert.showsSuppressionButton)
+    }
+
+    func testUnknownSiteAlertOffersToTrustIt() throws {
+        let alert = LinkWarningAlert.makeAlert(for: LinkWarning(link: try url("https://example.org"), host: "example.org"))
+        XCTAssertEqual(alert.messageText, "Cuidado con este enlace")
+        XCTAssertTrue(alert.showsSuppressionButton)
+    }
+
     func testWarningAlertShowsTheSiteAndCancelsWithEscapeOnly() throws {
         let link = try url("https://example.com/a")
         let alert = LinkWarningAlert.makeAlert(for: LinkWarning(link: link, host: "example.com"))

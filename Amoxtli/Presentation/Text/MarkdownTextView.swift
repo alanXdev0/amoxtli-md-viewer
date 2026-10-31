@@ -80,6 +80,10 @@ final class MarkdownTextView: NSTextView {
     /// Asks the layout manager directly: in a visible window, `characterIndexForInsertion(at:)`
     /// returns the end of the text, so no link would ever be found.
     func link(at point: NSPoint) -> URL? {
+        characterIndex(at: point).flatMap(link(atCharacter:))
+    }
+
+    private func characterIndex(at point: NSPoint) -> Int? {
         guard let layoutManager, let textContainer, let textStorage else { return nil }
         let containerPoint = NSPoint(x: point.x - textContainerOrigin.x, y: point.y - textContainerOrigin.y)
         let index = layoutManager.characterIndex(
@@ -89,7 +93,20 @@ final class MarkdownTextView: NSTextView {
         )
         // The layout manager answers with the nearest character, even for a point beside the line.
         guard index < textStorage.length, rect(ofCharacterAt: index).contains(point) else { return nil }
-        return Self.url(from: textStorage.attribute(.link, at: index, effectiveRange: nil))
+        return index
+    }
+
+    private func link(atCharacter index: Int) -> URL? {
+        Self.url(from: textStorage?.attribute(.link, at: index, effectiveRange: nil))
+    }
+
+    /// The whole text of the link, even when part of it has its own style.
+    private func linkText(atCharacter index: Int) -> String? {
+        guard let textStorage, index < textStorage.length else { return nil }
+        var range = NSRange()
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        _ = textStorage.attribute(.link, at: index, longestEffectiveRange: &range, in: fullRange)
+        return (textStorage.string as NSString).substring(with: range)
     }
 
     private func rect(ofCharacterAt index: Int) -> NSRect {
@@ -142,20 +159,21 @@ final class MarkdownTextView: NSTextView {
 
     override func clicked(onLink link: Any, at charIndex: Int) {
         guard let url = Self.url(from: link) else { return }
-        activate(url)
+        activate(url, displayedText: linkText(atCharacter: charIndex))
     }
 
-    private func activate(_ url: URL) {
+    private func activate(_ url: URL, displayedText: String?) {
         guard let links else { return }
-        Task { await links.activate(url) }
+        Task { await links.activate(url, displayedText: displayedText) }
     }
 
     // MARK: - Context menus
 
     override func menu(for event: NSEvent) -> NSMenu? {
         let point = convert(event.locationInWindow, from: nil)
-        if let links, let url = link(at: point) {
-            return LinkContextMenu.make(model: links.menuModel(for: url), links: links)
+        if let links, let index = characterIndex(at: point), let url = link(atCharacter: index) {
+            let model = links.menuModel(for: url, displayedText: linkText(atCharacter: index))
+            return LinkContextMenu.make(model: model, links: links)
         }
         return selectionMenu()
     }
@@ -196,7 +214,7 @@ final class MarkdownTextView: NSTextView {
 
     override func insertNewline(_ sender: Any?) {
         if let url = selectedLink {
-            activate(url)
+            activate(url, displayedText: linkText(atCharacter: selectedRange().location))
         }
     }
 
