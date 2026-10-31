@@ -238,6 +238,17 @@ final class MarkdownTextViewTests: XCTestCase {
 
     // MARK: - Keyboard
 
+    func testOnlyBlocksWithLinksAreTabStops() throws {
+        let (withLink, _) = try makeView("[uno](https://a.example)")
+        withLink.window?.orderBack(nil)
+        XCTAssertTrue(withLink.canBecomeKeyView)
+
+        let (withoutLink, _) = try makeView("solo texto")
+        withoutLink.window?.orderBack(nil)
+        XCTAssertFalse(withoutLink.canBecomeKeyView)
+        XCTAssertTrue(withoutLink.acceptsFirstResponder, "Debe seguir siendo seleccionable con el mouse")
+    }
+
     func testTabMovesThroughLinks() throws {
         let (view, viewModel) = try makeView("[uno](https://a.example) y [dos](https://b.example)")
         view.insertTab(nil)

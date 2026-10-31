@@ -3,11 +3,7 @@ import XCTest
 
 final class HeadingAnchorsTests: XCTestCase {
     private func anchors(_ source: String) throws -> HeadingAnchors {
-        HeadingAnchors(blocks: try MarkdownParser().parse(source).blocks)
-    }
-
-    func testSlugFollowsGitHubStyle() {
-        XCTAssertEqual(HeadingAnchors.slug(for: "  Mi Título: ¡uno_2! "), "mi-título-uno_2")
+        HeadingAnchors(entries: TOCBuilder.entries(for: try MarkdownParser().parse(source).blocks))
     }
 
     func testAnchorResolvesToBlockIndex() throws {

@@ -7,8 +7,10 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). N
 ## Funciones
 
 - Abre archivos `.md` y `.markdown` desde Finder, Open With o ⌘O.
+- Abre carpetas con File > Open Folder… (⇧⌘O): lista sus archivos Markdown, también los de subcarpetas, agrupados por carpeta. La ventana se restaura al volver a abrir la app.
+- Índice del documento en un panel lateral que se oculta con el botón de la barra o con ⌃⌘I. Al elegir una entrada, hace scroll hasta su encabezado.
 - Muestra encabezados, listas anidadas, citas, bloques de código, tablas, imágenes remotas y estilos de texto.
-- Explica los errores en la ventana: archivo vacío, UTF-8 inválido o archivo ilegible.
+- Explica los errores en la ventana: archivo vacío, UTF-8 inválido, archivo ilegible, carpeta sin Markdown o carpeta que ya no se encuentra.
 - Abre links web y de correo con el sistema, y los links `#ancla` hacen scroll al encabezado. Cualquier otro esquema se ignora y se avisa.
 - Al pasar el mouse sobre un link muestra su URL completa, como la barra de estado de Safari.
 - Menú contextual en links: abrir en la app predeterminada, "Abrir con" y copiar el enlace.
@@ -40,9 +42,15 @@ Por eso los bloques de texto usan un `NSViewRepresentable` sobre una subclase de
 
 - **Hover:** `NSTrackingArea`, `mouseMoved` y `characterIndexForInsertion(at:)` leyendo el atributo `.link`.
 - **Menú:** override de `menu(for:)`.
-- **Teclado:** ⇥ y ⇧⇥ recorren los links del bloque, y ↩ abre el seleccionado.
+- **Teclado:** ⇥ y ⇧⇥ recorren los links del bloque, y ↩ abre el seleccionado. Solo los bloques con links reciben foco con ⇥.
 
 La contrapartida es que cada bloque es una vista de texto independiente: la selección y "Seleccionar todo" no cruzan de un bloque a otro.
+
+## Carpetas
+
+El escaneo omite archivos y carpetas ocultos, el contenido de paquetes como las apps y los enlaces simbólicos. Una subcarpeta sin permiso de lectura se omite y no impide abrir el resto.
+
+La lista refleja la carpeta en el momento de abrirla: para ver archivos nuevos hay que cerrar la ventana y abrirla otra vez. Los links relativos entre archivos, como `otra-nota.md`, no navegan: se ignoran y se avisa, igual que cualquier otro esquema.
 
 ## Compilar
 

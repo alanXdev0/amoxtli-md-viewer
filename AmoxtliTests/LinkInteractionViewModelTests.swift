@@ -72,14 +72,14 @@ final class LinkInteractionViewModelTests: XCTestCase {
 
     func testAnchorRequestsScrollToHeading() async throws {
         let viewModel = makeViewModel()
-        viewModel.updateAnchors(HeadingAnchors(blocks: try MarkdownParser().parse("texto\n\n# Uno").blocks))
+        viewModel.updateAnchors(HeadingAnchors(entries: TOCBuilder.entries(for: try MarkdownParser().parse("texto\n\n# Uno").blocks)))
         await viewModel.activate(try url("#uno"))
         XCTAssertEqual(viewModel.scrollRequest?.blockIndex, 1)
     }
 
     func testRepeatedAnchorProducesNewRequest() async throws {
         let viewModel = makeViewModel()
-        viewModel.updateAnchors(HeadingAnchors(blocks: try MarkdownParser().parse("# Uno").blocks))
+        viewModel.updateAnchors(HeadingAnchors(entries: TOCBuilder.entries(for: try MarkdownParser().parse("# Uno").blocks)))
         await viewModel.activate(try url("#uno"))
         let first = viewModel.scrollRequest
         await viewModel.activate(try url("#uno"))
@@ -156,5 +156,14 @@ final class LinkInteractionViewModelTests: XCTestCase {
         let application = try XCTUnwrap(workspace.defaultApplicationURL(toOpen: link))
         XCTAssertTrue(workspace.applicationURLs(toOpen: link).contains(application))
         XCTAssertFalse(workspace.applicationName(at: application).hasSuffix(".app"))
+    }
+
+    func testScrollToBlockCanRepeatTheSameBlock() {
+        let viewModel = LinkInteractionViewModel(workspace: FakeWorkspace())
+        viewModel.scroll(toBlock: 3)
+        let first = viewModel.scrollRequest
+        XCTAssertEqual(first?.blockIndex, 3)
+        viewModel.scroll(toBlock: 3)
+        XCTAssertNotEqual(viewModel.scrollRequest, first)
     }
 }

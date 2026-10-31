@@ -88,6 +88,10 @@ final class LinkInteractionViewModel {
         workspace.applicationIcon(at: applicationURL)
     }
 
+    func scroll(toBlock blockIndex: Int) {
+        scrollRequest = ScrollRequest(blockIndex: blockIndex, sequence: (scrollRequest?.sequence ?? 0) + 1)
+    }
+
     private func systemLinkMenuModel(for url: URL) -> LinkMenuModel {
         let defaultURL = workspace.defaultApplicationURL(toOpen: url)
         let applications = applicationModels(for: url, defaultURL: defaultURL)
@@ -121,7 +125,7 @@ final class LinkInteractionViewModel {
         guard let blockIndex = anchors.blockIndex(forAnchor: anchor) else {
             return show(Notice(reason: .missingSection, link: link))
         }
-        scrollRequest = ScrollRequest(blockIndex: blockIndex, sequence: (scrollRequest?.sequence ?? 0) + 1)
+        scroll(toBlock: blockIndex)
     }
 
     private func show(_ notice: Notice) {

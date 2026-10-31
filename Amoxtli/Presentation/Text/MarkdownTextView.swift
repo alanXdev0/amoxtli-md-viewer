@@ -171,6 +171,12 @@ final class MarkdownTextView: NSTextView {
 
     // MARK: - Keyboard
 
+    /// Only blocks with links are tab stops. Otherwise, ⇥ would have to walk through every
+    /// paragraph of the document to get from the file list to the table of contents.
+    override var canBecomeKeyView: Bool {
+        super.canBecomeKeyView && !linkRanges().isEmpty
+    }
+
     override func insertTab(_ sender: Any?) {
         if !selectLink(forward: true) {
             window?.selectNextKeyView(sender)

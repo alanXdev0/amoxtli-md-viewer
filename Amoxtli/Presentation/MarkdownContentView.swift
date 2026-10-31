@@ -2,8 +2,8 @@ import SwiftUI
 
 struct MarkdownContentView: View {
     let model: MarkdownModel
+    let links: LinkInteractionViewModel
 
-    @State private var links = LinkInteractionViewModel()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let readingWidth: CGFloat = 800
@@ -29,9 +29,6 @@ struct MarkdownContentView: View {
         }
         .overlay { LinkStatusOverlay() }
         .environment(links)
-        .onChange(of: model, initial: true) { _, model in
-            links.updateAnchors(HeadingAnchors(blocks: model.blocks))
-        }
     }
 
     private func scroll(to blockIndex: Int, with proxy: ScrollViewProxy) {
@@ -44,10 +41,13 @@ struct MarkdownContentView: View {
 }
 
 #Preview {
-    MarkdownContentView(model: MarkdownModel(blocks: [
-        .heading(level: 1, content: InlineText(runs: [InlineRun(text: "Amoxtli")])),
-        .paragraph(InlineText(runs: [InlineRun(text: "Visor de "), InlineRun(text: "Markdown", style: .strong)])),
-        .thematicBreak,
-        .codeBlock(languageHint: "swift", code: "let visor = \"Amoxtli\""),
-    ]))
+    MarkdownContentView(
+        model: MarkdownModel(blocks: [
+            .heading(level: 1, content: InlineText(runs: [InlineRun(text: "Amoxtli")])),
+            .paragraph(InlineText(runs: [InlineRun(text: "Visor de "), InlineRun(text: "Markdown", style: .strong)])),
+            .thematicBreak,
+            .codeBlock(languageHint: "swift", code: "let visor = \"Amoxtli\""),
+        ]),
+        links: LinkInteractionViewModel()
+    )
 }

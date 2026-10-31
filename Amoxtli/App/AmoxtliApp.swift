@@ -6,6 +6,17 @@ struct AmoxtliApp: App {
         DocumentGroup(viewing: MarkdownDocument.self) { file in
             DocumentView(document: file.document)
         }
-        .defaultSize(width: 900, height: 700)
+        .defaultSize(width: 1120, height: 720)
+        .commands {
+            FolderCommands()
+            SidebarCommands()
+        }
+
+        WindowGroup(for: Data.self) { $bookmark in
+            FolderWindowView(bookmark: $bookmark)
+        }
+        .defaultSize(width: 1320, height: 760)
+        .defaultLaunchBehavior(.suppressed)
+        .commandsRemoved()
     }
 }

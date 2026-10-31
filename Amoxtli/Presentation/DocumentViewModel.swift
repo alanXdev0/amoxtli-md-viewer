@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 @Observable
@@ -9,7 +10,10 @@ final class DocumentViewModel {
     }
 
     private(set) var state: State = .loading
-    private let parser: any MarkdownParsing
+    private(set) var tableOfContents: [TOCEntry] = []
+    /// Changes on every load, so each loaded document starts with a fresh scroll position.
+    private(set) var loadCount = 0
+    @ObservationIgnored private let parser: any MarkdownParsing
 
     init(parser: any MarkdownParsing = MarkdownParser()) {
         self.parser = parser
@@ -21,18 +25,51 @@ final class DocumentViewModel {
         case .success(let source):
             let result = await Self.parse(source, with: parser)
             guard !Task.isCancelled else { return }
-            state = result
+            apply(result)
         case .failure(let error):
+            apply(.failure(error))
+        }
+    }
+
+    func load(contentsOf file: URL) async {
+        state = .loading
+        let content = await Self.read(file)
+        guard !Task.isCancelled else { return }
+        await load(content)
+    }
+
+    private func apply(_ result: Result<ParsedDocument, MarkdownDocumentError>) {
+        loadCount += 1
+        switch result {
+        case .success(let document):
+            tableOfContents = document.tableOfContents
+            state = .loaded(document.model)
+        case .failure(let error):
+            tableOfContents = []
             state = .failed(error)
         }
     }
 
+    private struct ParsedDocument: Sendable {
+        let model: MarkdownModel
+        let tableOfContents: [TOCEntry]
+    }
+
     @concurrent
-    private static func parse(_ source: String, with parser: any MarkdownParsing) async -> State {
+    private static func read(_ file: URL) async -> Result<String, MarkdownDocumentError> {
+        MarkdownDocument(data: try? Data(contentsOf: file)).content
+    }
+
+    @concurrent
+    private static func parse(
+        _ source: String,
+        with parser: any MarkdownParsing
+    ) async -> Result<ParsedDocument, MarkdownDocumentError> {
         do {
-            return .loaded(try parser.parse(source))
+            let model = try parser.parse(source)
+            return .success(ParsedDocument(model: model, tableOfContents: TOCBuilder.entries(for: model.blocks)))
         } catch {
-            return .failed(.unparsable)
+            return .failure(.unparsable)
         }
     }
 }

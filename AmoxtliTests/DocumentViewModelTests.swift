@@ -42,4 +42,52 @@ final class DocumentViewModelTests: XCTestCase {
             return XCTFail("Se esperaba el estado loaded, no \(viewModel.state)")
         }
     }
+
+    func testTableOfContentsComesFromLoadedDocument() async {
+        let viewModel = DocumentViewModel()
+        await viewModel.load(.success("# Uno\n\n## Dos"))
+        XCTAssertEqual(viewModel.tableOfContents.map(\.title), ["Uno", "Dos"])
+    }
+
+    func testFailureClearsTableOfContents() async {
+        let viewModel = DocumentViewModel()
+        await viewModel.load(.success("# Uno"))
+        await viewModel.load(.failure(.empty))
+        XCTAssertEqual(viewModel.tableOfContents, [])
+    }
+
+    func testEveryLoadChangesTheLoadCount() async {
+        let viewModel = DocumentViewModel()
+        await viewModel.load(.success("# Uno"))
+        let first = viewModel.loadCount
+        await viewModel.load(.success("# Uno"))
+        XCTAssertNotEqual(viewModel.loadCount, first)
+    }
+
+    func testLoadingFileReadsIt() async throws {
+        let file = try makeTemporaryFolder().addFile("nota.md", contents: Data("# Uno".utf8))
+        let viewModel = DocumentViewModel()
+        await viewModel.load(contentsOf: file)
+        XCTAssertEqual(viewModel.state, .loaded(try MarkdownParser().parse("# Uno")))
+    }
+
+    func testLoadingMissingFileIsUnreadable() async throws {
+        let viewModel = DocumentViewModel()
+        await viewModel.load(contentsOf: try makeTemporaryFolder().url.appending(path: "no-existe.md"))
+        XCTAssertEqual(viewModel.state, .failed(.unreadable))
+    }
+
+    func testLoadingInvalidFileReportsTheEncoding() async throws {
+        let file = try makeTemporaryFolder().addFile("nota.md", contents: Data([0xFF, 0xFE, 0xFD]))
+        let viewModel = DocumentViewModel()
+        await viewModel.load(contentsOf: file)
+        XCTAssertEqual(viewModel.state, .failed(.invalidEncoding))
+    }
+
+    func testLoadingEmptyFileIsEmpty() async throws {
+        let file = try makeTemporaryFolder().addFile("nota.md", contents: Data())
+        let viewModel = DocumentViewModel()
+        await viewModel.load(contentsOf: file)
+        XCTAssertEqual(viewModel.state, .failed(.empty))
+    }
 }
