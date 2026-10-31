@@ -12,6 +12,7 @@ struct AmoxtliApp: App {
         .commands {
             DefaultAppCommands(flow: appDelegate.defaultAppFlow)
             LinkCommands()
+            ReadOnlyDocumentCommands()
             FolderCommands()
             SidebarCommands()
         }
