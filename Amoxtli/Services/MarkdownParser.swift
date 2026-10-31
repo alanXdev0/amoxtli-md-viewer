@@ -1,0 +1,215 @@
+import Foundation
+
+nonisolated protocol MarkdownParsing: Sendable {
+    func parse(_ source: String) throws -> MarkdownModel
+}
+
+/// Builds the block tree by grouping `AttributedString` runs on their `PresentationIntent` path.
+nonisolated struct MarkdownParser: MarkdownParsing {
+    func parse(_ source: String) throws -> MarkdownModel {
+        let options = AttributedString.MarkdownParsingOptions(
+            interpretedSyntax: .full,
+            failurePolicy: .returnPartiallyParsedIfPossible
+        )
+        let attributed = try AttributedString(markdown: source, options: options)
+        return MarkdownModel(blocks: blocks(from: parsedRuns(in: attributed), depth: 0))
+    }
+
+    private func parsedRuns(in attributed: AttributedString) -> [ParsedRun] {
+        attributed.runs.map { run in
+            ParsedRun(
+                // `components` lists the innermost intent first; grouping needs outermost first.
+                path: (run.presentationIntent?.components ?? []).reversed(),
+                inline: InlineRun(
+                    text: String(attributed[run.range].characters),
+                    style: InlineStyle(run.inlinePresentationIntent),
+                    link: run.link
+                ),
+                imageURL: run.imageURL
+            )
+        }
+    }
+
+    // MARK: - Blocks
+
+    private func blocks(from runs: [ParsedRun], depth: Int) -> [MarkdownBlock] {
+        groups(of: runs, depth: depth).flatMap { blocks(from: $0, depth: depth) }
+    }
+
+    private func blocks(from group: RunGroup, depth: Int) -> [MarkdownBlock] {
+        let childDepth = depth + 1
+        switch group.intent?.kind {
+        case .header(let level):
+            return [.heading(level: level, content: inlineText(from: group.runs))]
+        case .orderedList:
+            return [.orderedList(listItems(from: group.runs, depth: childDepth))]
+        case .unorderedList:
+            return [.unorderedList(listItems(from: group.runs, depth: childDepth))]
+        case .blockQuote:
+            return [.blockQuote(blocks(from: group.runs, depth: childDepth))]
+        case .codeBlock(let languageHint):
+            return [codeBlock(from: group.runs, languageHint: languageHint)]
+        case .table(let columns):
+            return [.table(table(from: group.runs, columns: columns, depth: childDepth))]
+        case .thematicBreak:
+            return [.thematicBreak]
+        default:
+            return paragraphBlocks(from: group.runs)
+        }
+    }
+
+    private func groups(of runs: [ParsedRun], depth: Int) -> [RunGroup] {
+        var groups: [RunGroup] = []
+        for run in runs {
+            let intent = run.path.indices.contains(depth) ? run.path[depth] : nil
+            if let last = groups.indices.last, let intent, groups[last].intent?.identity == intent.identity {
+                groups[last].runs.append(run)
+            } else {
+                groups.append(RunGroup(intent: intent, runs: [run]))
+            }
+        }
+        return groups
+    }
+
+    private func listItems(from runs: [ParsedRun], depth: Int) -> [ListItem] {
+        groups(of: runs, depth: depth).map { group in
+            ListItem(
+                ordinal: ordinal(of: group.intent),
+                blocks: blocks(from: group.runs, depth: depth + 1)
+            )
+        }
+    }
+
+    private func ordinal(of intent: PresentationIntent.IntentType?) -> Int {
+        if case .listItem(let ordinal) = intent?.kind { return ordinal }
+        return 1
+    }
+
+    private func codeBlock(from runs: [ParsedRun], languageHint: String?) -> MarkdownBlock {
+        let code = runs.map(\.inline.text).joined()
+        return .codeBlock(
+            languageHint: languageHint?.isEmpty == true ? nil : languageHint,
+            code: code.hasSuffix("\n") ? String(code.dropLast()) : code
+        )
+    }
+
+    // MARK: - Paragraphs
+
+    /// `Text` can't host an `AsyncImage`, so images break the paragraph into separate blocks.
+    private func paragraphBlocks(from runs: [ParsedRun]) -> [MarkdownBlock] {
+        var blocks: [MarkdownBlock] = []
+        var pending: [ParsedRun] = []
+
+        func flushPending() {
+            if pending.contains(where: { !$0.inline.text.allSatisfy(\.isWhitespace) }) {
+                blocks.append(.paragraph(inlineText(from: pending)))
+            }
+            pending = []
+        }
+
+        for run in runs {
+            if let source = run.imageURL {
+                flushPending()
+                // Images without alt text arrive with U+FFFC as their only text.
+                let altText = run.inline.text == "\u{FFFC}" ? "" : run.inline.text
+                blocks.append(.image(MarkdownImage(source: source, altText: altText)))
+            } else {
+                pending.append(run)
+            }
+        }
+        flushPending()
+        return blocks
+    }
+
+    /// Adjacent runs with the same attributes are merged: soft breaks arrive as runs of their own.
+    private func inlineText(from runs: [ParsedRun]) -> InlineText {
+        var merged: [InlineRun] = []
+        for run in runs.map(\.inline) {
+            if let last = merged.last, last.style == run.style, last.link == run.link {
+                merged[merged.count - 1] = InlineRun(text: last.text + run.text, style: last.style, link: last.link)
+            } else {
+                merged.append(run)
+            }
+        }
+        return InlineText(runs: merged)
+    }
+
+    // MARK: - Tables
+
+    private func table(
+        from runs: [ParsedRun],
+        columns: [PresentationIntent.TableColumn],
+        depth: Int
+    ) -> MarkdownTable {
+        var header: [InlineText] = emptyRow(columnCount: columns.count)
+        var rowsByIndex: [Int: [InlineText]] = [:]
+
+        for group in groups(of: runs, depth: depth) {
+            let cells = tableRow(from: group.runs, columnCount: columns.count, depth: depth + 1)
+            if case .tableRow(let rowIndex) = group.intent?.kind {
+                rowsByIndex[rowIndex] = cells
+            } else {
+                header = cells
+            }
+        }
+
+        return MarkdownTable(
+            columns: columns.map(MarkdownTable.Alignment.init),
+            header: header,
+            rows: bodyRows(from: rowsByIndex, columnCount: columns.count)
+        )
+    }
+
+    /// The parser emits no runs for empty cells, so they are recovered from the column index.
+    private func tableRow(from runs: [ParsedRun], columnCount: Int, depth: Int) -> [InlineText] {
+        var cells = emptyRow(columnCount: columnCount)
+        for group in groups(of: runs, depth: depth) {
+            if case .tableCell(let column) = group.intent?.kind, cells.indices.contains(column) {
+                cells[column] = inlineText(from: group.runs)
+            }
+        }
+        return cells
+    }
+
+    /// A row made only of empty cells emits no runs either, leaving a gap in the row indices.
+    private func bodyRows(from rowsByIndex: [Int: [InlineText]], columnCount: Int) -> [[InlineText]] {
+        guard let lastIndex = rowsByIndex.keys.max() else { return [] }
+        return (1...max(lastIndex, 1)).map { rowsByIndex[$0] ?? emptyRow(columnCount: columnCount) }
+    }
+
+    private func emptyRow(columnCount: Int) -> [InlineText] {
+        Array(repeating: InlineText(runs: []), count: columnCount)
+    }
+}
+
+private nonisolated struct ParsedRun {
+    let path: [PresentationIntent.IntentType]
+    let inline: InlineRun
+    let imageURL: URL?
+}
+
+private nonisolated struct RunGroup {
+    let intent: PresentationIntent.IntentType?
+    var runs: [ParsedRun]
+}
+
+private nonisolated extension InlineStyle {
+    init(_ intent: InlinePresentationIntent?) {
+        self = []
+        guard let intent else { return }
+        if intent.contains(.emphasized) { insert(.emphasis) }
+        if intent.contains(.stronglyEmphasized) { insert(.strong) }
+        if intent.contains(.code) { insert(.code) }
+        if intent.contains(.strikethrough) { insert(.strikethrough) }
+    }
+}
+
+private nonisolated extension MarkdownTable.Alignment {
+    init(_ column: PresentationIntent.TableColumn) {
+        switch column.alignment {
+        case .center: self = .center
+        case .right: self = .trailing
+        default: self = .leading
+        }
+    }
+}
