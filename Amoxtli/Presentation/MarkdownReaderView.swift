@@ -3,6 +3,7 @@ import SwiftUI
 /// A document with its table of contents, shared by the single-file and folder windows.
 struct MarkdownReaderView: View {
     let viewModel: DocumentViewModel
+    var fileURL: URL?
 
     @State private var links = LinkInteractionViewModel()
     @SceneStorage("isTableOfContentsPresented") private var isTableOfContentsPresented = true
@@ -10,6 +11,7 @@ struct MarkdownReaderView: View {
     var body: some View {
         content
             .frame(minWidth: 480, minHeight: 360)
+            .focusedSceneValue(\.shownFileURL, fileURL)
             .inspector(isPresented: $isTableOfContentsPresented) {
                 TableOfContentsView(entries: viewModel.tableOfContents) { entry in
                     links.scroll(toBlock: entry.blockIndex)

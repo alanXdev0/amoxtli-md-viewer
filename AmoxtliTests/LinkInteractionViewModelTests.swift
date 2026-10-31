@@ -8,9 +8,27 @@ final class LinkInteractionViewModelTests: XCTestCase {
     private let another = URL(filePath: "/Applications/Another.app")
     private let pasteboard = NSPasteboard.withUniqueName()
     private let workspace = FakeWorkspace()
+    private let prompter = FakeLinkWarningPrompter()
+    private var defaults = UserDefaults()
+    private var suiteName = ""
+
+    override func setUpWithError() throws {
+        suiteName = "LinkInteractionViewModelTests-\(UUID().uuidString)"
+        defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    }
+
+    override func tearDown() async throws {
+        defaults.removePersistentDomain(forName: suiteName)
+    }
 
     private func makeViewModel(noticeDuration: Duration = .seconds(60)) -> LinkInteractionViewModel {
-        LinkInteractionViewModel(workspace: workspace, pasteboard: pasteboard, noticeDuration: noticeDuration)
+        LinkInteractionViewModel(
+            workspace: workspace,
+            pasteboard: pasteboard,
+            noticeDuration: noticeDuration,
+            trustedHosts: TrustedHostsStore(defaults: defaults),
+            warningPrompter: prompter
+        )
     }
 
     private func url(_ string: String) throws -> URL {
@@ -66,6 +84,127 @@ final class LinkInteractionViewModelTests: XCTestCase {
         await viewModel.open(link, withApplicationAt: another)
         XCTAssertTrue(workspace.openedWithApplication.isEmpty)
         XCTAssertEqual(viewModel.notice, .init(reason: .unsupportedLink, link: link))
+    }
+
+    // MARK: - Unknown sites
+
+    func testKnownSiteOpensWithoutWarning() async throws {
+        let link = try url("https://github.com/apple/swift")
+        await makeViewModel().activate(link)
+        XCTAssertEqual(prompter.warnings, [])
+        XCTAssertEqual(workspace.openedLinks, [link])
+    }
+
+    func testMailtoOpensWithoutWarning() async throws {
+        let link = try url("mailto:hola@example.com")
+        await makeViewModel().activate(link)
+        XCTAssertEqual(prompter.warnings, [])
+        XCTAssertEqual(workspace.openedLinks, [link])
+    }
+
+    func testUnknownSiteWarnsBeforeOpening() async throws {
+        let link = try url("https://example.com/a")
+        await makeViewModel().activate(link)
+        XCTAssertEqual(prompter.warnings, [LinkWarning(link: link, host: "example.com")])
+        XCTAssertEqual(workspace.openedLinks, [link])
+    }
+
+    func testCancelingTheWarningDoesNotOpen() async throws {
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: false)
+        let viewModel = makeViewModel()
+        await viewModel.activate(try url("https://example.com/a"))
+        XCTAssertEqual(workspace.openedLinks, [])
+        XCTAssertNil(viewModel.notice)
+    }
+
+    func testOpenWithApplicationAlsoWarns() async throws {
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: false)
+        await makeViewModel().open(try url("https://example.com/a"), withApplicationAt: another)
+        XCTAssertEqual(prompter.warnings.count, 1)
+        XCTAssertTrue(workspace.openedWithApplication.isEmpty)
+    }
+
+    func testAlwaysTrustingASiteStopsWarningAboutIt() async throws {
+        prompter.answer = LinkWarningAnswer(opens: true, alwaysTrusts: true)
+        let viewModel = makeViewModel()
+        await viewModel.activate(try url("https://example.com/a"))
+        await viewModel.activate(try url("https://www.example.com/b"))
+        XCTAssertEqual(prompter.warnings.count, 1)
+        XCTAssertEqual(workspace.openedLinks.count, 2)
+    }
+
+    func testCancelingDoesNotTrustTheSiteEvenWithTheCheckboxOn() async throws {
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: true)
+        await makeViewModel().activate(try url("https://example.com/a"))
+        XCTAssertEqual(TrustedHostsStore(defaults: defaults).hosts, [])
+    }
+
+    func testWarningClearsTheHoveredLink() async throws {
+        let link = try url("https://example.com/a")
+        let viewModel = makeViewModel()
+        viewModel.hover(link)
+        await viewModel.activate(link)
+        XCTAssertNil(viewModel.hoveredLink)
+    }
+
+    // MARK: - Misleading text
+
+    func testMisleadingTextWarnsEvenWhenTheSiteIsKnown() async throws {
+        let link = try url("https://github.com/malware")
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: false)
+        await makeViewModel().activate(link, displayedText: "apple.com")
+        XCTAssertEqual(prompter.warnings, [
+            LinkWarning(link: link, host: "github.com", reason: .misleadingText(claimedHost: "apple.com")),
+        ])
+        XCTAssertEqual(workspace.openedLinks, [])
+    }
+
+    func testMisleadingTextWarnsEvenWhenTheSiteIsTrusted() async throws {
+        TrustedHostsStore(defaults: defaults).add("example.org")
+        await makeViewModel().activate(try url("https://example.org"), displayedText: "apple.com")
+        XCTAssertEqual(prompter.warnings.count, 1)
+    }
+
+    func testMisleadingTextWarnsWhenOpeningWithAnApplication() async throws {
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: false)
+        await makeViewModel().open(try url("https://github.com"), withApplicationAt: another, displayedText: "apple.com")
+        XCTAssertEqual(prompter.warnings.count, 1)
+        XCTAssertTrue(workspace.openedWithApplication.isEmpty)
+    }
+
+    func testOpeningAMisleadingLinkDoesNotTrustItsSite() async throws {
+        prompter.answer = LinkWarningAnswer(opens: true, alwaysTrusts: true)
+        await makeViewModel().activate(try url("https://example.org"), displayedText: "apple.com")
+        XCTAssertEqual(workspace.openedLinks.count, 1)
+        XCTAssertEqual(TrustedHostsStore(defaults: defaults).hosts, [])
+    }
+
+    func testMisleadingAlertExplainsTheMismatchAndOffersNoTrust() throws {
+        let warning = LinkWarning(
+            link: try url("https://example.org/a"),
+            host: "example.org",
+            reason: .misleadingText(claimedHost: "apple.com")
+        )
+        let alert = LinkWarningAlert.makeAlert(for: warning)
+        XCTAssertEqual(alert.messageText, "Este enlace podría engañarte")
+        XCTAssertTrue(alert.informativeText.contains("apple.com"))
+        XCTAssertTrue(alert.informativeText.contains("example.org"))
+        XCTAssertFalse(alert.showsSuppressionButton)
+    }
+
+    func testUnknownSiteAlertOffersToTrustIt() throws {
+        let alert = LinkWarningAlert.makeAlert(for: LinkWarning(link: try url("https://example.org"), host: "example.org"))
+        XCTAssertEqual(alert.messageText, "Cuidado con este enlace")
+        XCTAssertTrue(alert.showsSuppressionButton)
+    }
+
+    func testWarningAlertShowsTheSiteAndCancelsWithEscapeOnly() throws {
+        let link = try url("https://example.com/a")
+        let alert = LinkWarningAlert.makeAlert(for: LinkWarning(link: link, host: "example.com"))
+        XCTAssertTrue(alert.informativeText.contains("example.com"))
+        XCTAssertTrue(alert.informativeText.contains("https://example.com/a"))
+        XCTAssertEqual(alert.buttons.map(\.title), ["Cancelar", "Abrir enlace"])
+        XCTAssertEqual(alert.buttons.map(\.keyEquivalent), ["\u{1b}", ""])
     }
 
     // MARK: - Anchors

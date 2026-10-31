@@ -8,12 +8,22 @@ final class MarkdownTextViewTests: XCTestCase {
     private let link = URL(string: "https://example.com/ruta")
     private let workspace = FakeWorkspace()
     private let pasteboard = NSPasteboard.withUniqueName()
+    private let prompter = FakeLinkWarningPrompter()
     private var window: NSWindow?
     private var viewModel: LinkInteractionViewModel?
+
+    private var defaults = UserDefaults()
+    private var suiteName = ""
+
+    override func setUpWithError() throws {
+        suiteName = "MarkdownTextViewTests-\(UUID().uuidString)"
+        defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    }
 
     override func tearDown() async throws {
         window?.close()
         window = nil
+        defaults.removePersistentDomain(forName: suiteName)
     }
 
     private func makeView(_ source: String) throws -> (MarkdownTextView, LinkInteractionViewModel) {
@@ -21,7 +31,12 @@ final class MarkdownTextViewTests: XCTestCase {
         guard case .paragraph(let content) = blocks.first else {
             throw XCTSkip("Se esperaba un párrafo")
         }
-        let viewModel = LinkInteractionViewModel(workspace: workspace, pasteboard: pasteboard)
+        let viewModel = LinkInteractionViewModel(
+            workspace: workspace,
+            pasteboard: pasteboard,
+            trustedHosts: TrustedHostsStore(defaults: defaults),
+            warningPrompter: prompter
+        )
         let view = MarkdownTextView.make()
         view.links = viewModel
         view.setLinksUnderlined(false)
@@ -85,6 +100,14 @@ final class MarkdownTextViewTests: XCTestCase {
         XCTAssertEqual(view.link(at: try point(ofText: "enlace", in: view, fraction: 0.02)), link)
         XCTAssertEqual(view.link(at: try point(ofText: "enlace", in: view, fraction: 0.98)), link)
         XCTAssertNil(view.link(at: try point(ofText: "s ", in: view, fraction: 0.2)))
+    }
+
+    func testLinkIsFoundInAVisibleWindowAwayFromTheScreenOrigin() throws {
+        let (view, _) = try makeView("antes [enlace](https://example.com/ruta) y mucho más texto después")
+        view.window?.setFrameOrigin(NSPoint(x: 200, y: 300))
+        view.window?.orderFront(nil)
+        view.frame.origin = NSPoint(x: 0, y: 40)
+        XCTAssertEqual(view.link(at: try point(ofText: "enlace", in: view)), link)
     }
 
     func testLinkIsNotFoundBesideTheLine() throws {
@@ -163,6 +186,56 @@ final class MarkdownTextViewTests: XCTestCase {
         XCTAssertEqual(workspace.openedLinks, [])
     }
 
+    // MARK: - Misleading text
+
+    private func waitForWarning() async throws {
+        for _ in 0..<100 where prompter.warnings.isEmpty {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+    }
+
+    private var misleadingWarning: LinkWarning? {
+        URL(string: "https://example.org").map {
+            LinkWarning(link: $0, host: "example.org", reason: .misleadingText(claimedHost: "apple.com"))
+        }
+    }
+
+    func testClickSendsTheWholeLinkTextEvenWithMixedStyles() async throws {
+        let (view, _) = try makeView("antes [**apple**.com](https://example.org) después")
+        let index = (view.string as NSString).range(of: "apple").location
+        view.clicked(onLink: try XCTUnwrap(URL(string: "https://example.org")), at: index)
+        try await waitForWarning()
+        XCTAssertEqual(prompter.warnings, [try XCTUnwrap(misleadingWarning)])
+    }
+
+    func testReturnSendsTheLinkText() async throws {
+        let (view, _) = try makeView("[apple.com](https://example.org)")
+        view.insertTab(nil)
+        view.insertNewline(nil)
+        try await waitForWarning()
+        XCTAssertEqual(prompter.warnings, [try XCTUnwrap(misleadingWarning)])
+    }
+
+    func testMenuItemsSendTheLinkText() async throws {
+        let web = URL(filePath: "/Applications/Web.app")
+        workspace.defaultApplication = web
+        workspace.applications = [web]
+        prompter.answer = LinkWarningAnswer(opens: false, alwaysTrusts: false)
+        let (view, _) = try makeView("[apple.com](https://example.org)")
+        let menu = view.menu(for: try event(.rightMouseDown, at: try point(ofText: "apple", in: view), in: view))
+
+        try invoke(menu?.items.first { $0.title == "Abrir en Web" })
+        try await waitForWarning()
+        XCTAssertEqual(prompter.warnings, [try XCTUnwrap(misleadingWarning)])
+
+        try invoke(menu?.items.first { $0.title == "Abrir con" }?.submenu?.items.first)
+        for _ in 0..<100 where prompter.warnings.count < 2 {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertEqual(prompter.warnings.last, try XCTUnwrap(misleadingWarning))
+        XCTAssertEqual(workspace.openedLinks, [])
+    }
+
     // MARK: - Menus
 
     func testLinkMenuListsOpenOpenWithAndCopy() throws {
@@ -179,6 +252,7 @@ final class MarkdownTextViewTests: XCTestCase {
         XCTAssertEqual(submenu?.items.map(\.title), ["Another", "Web"])
         XCTAssertEqual(submenu?.items.map(\.state), [.off, .on])
         XCTAssertEqual(submenu?.items.compactMap(\.image?.size), [NSSize(width: 16, height: 16), NSSize(width: 16, height: 16)])
+        XCTAssertEqual(submenu?.items.map(\.preferredImageVisibility), [.visible, .visible])
     }
 
     func testLinkMenuItemsPerformTheirActions() async throws {

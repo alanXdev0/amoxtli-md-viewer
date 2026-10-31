@@ -22,7 +22,7 @@ struct FolderBrowserView: View {
     @ViewBuilder
     private var detail: some View {
         if let file = viewModel.selectedFile {
-            MarkdownReaderView(viewModel: document)
+            MarkdownReaderView(viewModel: document, fileURL: file.url)
                 .navigationSubtitle(Text(verbatim: file.name))
         } else {
             ContentUnavailableView(

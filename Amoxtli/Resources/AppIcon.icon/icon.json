@@ -1,0 +1,152 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "display-p3:0.15000,0.27000,0.24000,1.00000",
+          "display-p3:0.07000,0.16000,0.14000,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "display-p3:0.09000,0.18000,0.16000,1.00000",
+          "display-p3:0.03000,0.08000,0.07000,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "glass": false,
+          "image-name": "marca.svg",
+          "name": "marca",
+          "position": {
+            "scale": 0.92,
+            "translation-in-points": [
+              0,
+              -20
+            ]
+          }
+        }
+      ],
+      "name": "marca",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.15
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": false,
+          "image-name": "grecas.svg",
+          "name": "grecas",
+          "position": {
+            "scale": 0.92,
+            "translation-in-points": [
+              0,
+              -20
+            ]
+          }
+        }
+      ],
+      "name": "ornamento",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.1
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": false,
+          "image-name": "amate.svg",
+          "name": "amate",
+          "position": {
+            "scale": 0.92,
+            "translation-in-points": [
+              0,
+              -20
+            ]
+          }
+        }
+      ],
+      "name": "paginas",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.3
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "tapa.svg",
+          "name": "tapa",
+          "position": {
+            "scale": 0.92,
+            "translation-in-points": [
+              0,
+              -20
+            ]
+          }
+        }
+      ],
+      "name": "libro",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}

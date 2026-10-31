@@ -2,6 +2,16 @@ import AppKit
 import UniformTypeIdentifiers
 @testable import Amoxtli
 
+final class FakeLinkWarningPrompter: LinkWarningPrompting {
+    var answer = LinkWarningAnswer(opens: true, alwaysTrusts: false)
+    private(set) var warnings: [LinkWarning] = []
+
+    func confirmOpening(_ warning: LinkWarning) -> LinkWarningAnswer {
+        warnings.append(warning)
+        return answer
+    }
+}
+
 final class FakeWorkspace: WorkspaceServicing {
     struct Failure: Error {}
 

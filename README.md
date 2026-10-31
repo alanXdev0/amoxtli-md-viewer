@@ -15,6 +15,7 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). N
 - Abre links web y de correo con el sistema, y los links `#ancla` hacen scroll al encabezado. Cualquier otro esquema se ignora y se avisa.
 - Al pasar el mouse sobre un link muestra su URL completa, como la barra de estado de Safari.
 - Menú contextual en links: abrir en la app predeterminada, "Abrir con" y copiar el enlace.
+- Avisa antes de abrir un link a un sitio que no conoce. Ver [Enlaces conocidos](#enlaces-conocidos).
 
 ## Soporte de Markdown
 
@@ -41,11 +42,24 @@ SwiftUI `Text` no sirve para el hover ni para el menú por link. En el SDK de ma
 
 Por eso los bloques de texto usan un `NSViewRepresentable` sobre una subclase de `NSTextView` (`MarkdownTextView`), de solo lectura y seleccionable:
 
-- **Hover:** `NSTrackingArea`, `mouseMoved` y `characterIndexForInsertion(at:)` leyendo el atributo `.link`.
+- **Hover:** `NSTrackingArea`, `mouseMoved` y `NSLayoutManager.characterIndex(for:in:fractionOfDistanceBetweenInsertionPoints:)` leyendo el atributo `.link`. No usa `characterIndexForInsertion(at:)` porque en una ventana visible devuelve el final del texto.
 - **Menú:** override de `menu(for:)`.
 - **Teclado:** ⇥ y ⇧⇥ recorren los links del bloque, y ↩ abre el seleccionado. Solo los bloques con links reciben foco con ⇥.
 
 La contrapartida es que cada bloque es una vista de texto independiente: la selección y "Seleccionar todo" no cruzan de un bloque a otro.
+
+## Enlaces conocidos
+
+Un documento puede decir una cosa y enlazar a otra, así que Amoxtli no abre cualquier sitio sin avisar. Cada link web pasa por esta revisión, ya sea con un clic, con ↩ o desde el menú contextual:
+
+- **Se abren directo:** `apple.com`, `github.com`, `mozilla.org`, `swift.org` y `wikipedia.org`, con sus subdominios, y los sitios en los que elegiste confiar. También los links `mailto:`, porque solo crean un borrador.
+- **Muestran una alerta:** todos los demás sitios. La alerta enseña el dominio y la URL completa, y permite "Confiar siempre" en ese sitio.
+- **Muestran otra alerta, siempre:** los links cuyo texto nombra un sitio distinto de su destino, como `[apple.com](https://otro-sitio.example)`, aunque el destino sea conocido o de confianza. Esta alerta no ofrece confiar en el sitio.
+- **Nunca se abren:** los demás esquemas, como `ftp:` o `file:`.
+
+La comparación es por dominio completo: `notgithub.com` y `github.com.example.org` no cuentan como GitHub. Para borrar los sitios de confianza, usa "Olvidar sitios de confianza" en el menú de la app.
+
+Un texto cuenta como dirección si empieza con `http://`, `https://` o `www.`, si es un correo, o si termina en un dominio común en minúsculas, como `.com` o `.org`. Así, `README.md` y `ASP.NET` no disparan la alerta. Los subdominios del mismo sitio tampoco: `apple.com` puede llevar a `support.apple.com`.
 
 ## Carpetas
 
