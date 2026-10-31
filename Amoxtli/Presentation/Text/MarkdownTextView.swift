@@ -77,13 +77,18 @@ final class MarkdownTextView: NSTextView {
 
     // MARK: - Hit testing
 
+    /// Asks the layout manager directly: in a visible window, `characterIndexForInsertion(at:)`
+    /// returns the end of the text, so no link would ever be found.
     func link(at point: NSPoint) -> URL? {
-        guard let window, let textStorage else { return nil }
-        let screenPoint = window.convertPoint(toScreen: convert(point, to: nil))
-        let insertionIndex = characterIndexForInsertion(at: screenPoint)
-        // The insertion point can sit on either side of the character under the pointer.
-        let candidates = [insertionIndex, insertionIndex - 1].filter { (0..<textStorage.length).contains($0) }
-        guard let index = candidates.first(where: { rect(ofCharacterAt: $0).contains(point) }) else { return nil }
+        guard let layoutManager, let textContainer, let textStorage else { return nil }
+        let containerPoint = NSPoint(x: point.x - textContainerOrigin.x, y: point.y - textContainerOrigin.y)
+        let index = layoutManager.characterIndex(
+            for: containerPoint,
+            in: textContainer,
+            fractionOfDistanceBetweenInsertionPoints: nil
+        )
+        // The layout manager answers with the nearest character, even for a point beside the line.
+        guard index < textStorage.length, rect(ofCharacterAt: index).contains(point) else { return nil }
         return Self.url(from: textStorage.attribute(.link, at: index, effectiveRange: nil))
     }
 

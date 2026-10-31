@@ -11,6 +11,7 @@ struct AmoxtliApp: App {
         .defaultSize(width: 1120, height: 720)
         .commands {
             DefaultAppCommands(flow: appDelegate.defaultAppFlow)
+            LinkCommands()
             FolderCommands()
             SidebarCommands()
         }

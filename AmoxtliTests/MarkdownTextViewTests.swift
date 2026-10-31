@@ -11,9 +11,18 @@ final class MarkdownTextViewTests: XCTestCase {
     private var window: NSWindow?
     private var viewModel: LinkInteractionViewModel?
 
+    private var defaults = UserDefaults()
+    private var suiteName = ""
+
+    override func setUpWithError() throws {
+        suiteName = "MarkdownTextViewTests-\(UUID().uuidString)"
+        defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    }
+
     override func tearDown() async throws {
         window?.close()
         window = nil
+        defaults.removePersistentDomain(forName: suiteName)
     }
 
     private func makeView(_ source: String) throws -> (MarkdownTextView, LinkInteractionViewModel) {
@@ -21,7 +30,12 @@ final class MarkdownTextViewTests: XCTestCase {
         guard case .paragraph(let content) = blocks.first else {
             throw XCTSkip("Se esperaba un párrafo")
         }
-        let viewModel = LinkInteractionViewModel(workspace: workspace, pasteboard: pasteboard)
+        let viewModel = LinkInteractionViewModel(
+            workspace: workspace,
+            pasteboard: pasteboard,
+            trustedHosts: TrustedHostsStore(defaults: defaults),
+            warningPrompter: FakeLinkWarningPrompter()
+        )
         let view = MarkdownTextView.make()
         view.links = viewModel
         view.setLinksUnderlined(false)
@@ -85,6 +99,14 @@ final class MarkdownTextViewTests: XCTestCase {
         XCTAssertEqual(view.link(at: try point(ofText: "enlace", in: view, fraction: 0.02)), link)
         XCTAssertEqual(view.link(at: try point(ofText: "enlace", in: view, fraction: 0.98)), link)
         XCTAssertNil(view.link(at: try point(ofText: "s ", in: view, fraction: 0.2)))
+    }
+
+    func testLinkIsFoundInAVisibleWindowAwayFromTheScreenOrigin() throws {
+        let (view, _) = try makeView("antes [enlace](https://example.com/ruta) y mucho más texto después")
+        view.window?.setFrameOrigin(NSPoint(x: 200, y: 300))
+        view.window?.orderFront(nil)
+        view.frame.origin = NSPoint(x: 0, y: 40)
+        XCTAssertEqual(view.link(at: try point(ofText: "enlace", in: view)), link)
     }
 
     func testLinkIsNotFoundBesideTheLine() throws {
@@ -179,6 +201,7 @@ final class MarkdownTextViewTests: XCTestCase {
         XCTAssertEqual(submenu?.items.map(\.title), ["Another", "Web"])
         XCTAssertEqual(submenu?.items.map(\.state), [.off, .on])
         XCTAssertEqual(submenu?.items.compactMap(\.image?.size), [NSSize(width: 16, height: 16), NSSize(width: 16, height: 16)])
+        XCTAssertEqual(submenu?.items.map(\.preferredImageVisibility), [.visible, .visible])
     }
 
     func testLinkMenuItemsPerformTheirActions() async throws {

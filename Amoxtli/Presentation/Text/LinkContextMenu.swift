@@ -57,6 +57,8 @@ enum LinkContextMenu {
         let icon = links.applicationIcon(at: application.url)
         icon.size = iconSize
         item.image = icon
+        // Since macOS 27, AppKit typically hides menu item images unless asked to show them.
+        item.preferredImageVisibility = .visible
         item.state = application.isDefault ? .on : .off
         return item
     }
