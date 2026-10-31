@@ -6,7 +6,7 @@ struct AmoxtliApp: App {
 
     var body: some Scene {
         DocumentGroup(viewing: MarkdownDocument.self) { file in
-            DocumentView(document: file.document)
+            DocumentView(document: file.document, fileURL: file.fileURL)
         }
         .defaultSize(width: 1120, height: 720)
         .commands {
