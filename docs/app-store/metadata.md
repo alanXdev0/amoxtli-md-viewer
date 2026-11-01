@@ -1,18 +1,23 @@
 # Ficha de App Store
 
-Textos para App Store Connect. **Promotional Text**, **Description** y **Keywords** van en cada versión; **Subtitle** va en App Information.
+Textos para App Store Connect. **Promotional Text**, **Description** y **Keywords** van en cada versión; **Name** y **Subtitle** van en App Information.
 
 ## Iguales en todos los idiomas
 
 | Campo | Valor |
 |---|---|
-| Name | `Amoxtli: Markdown Viewer` |
 | Support URL | `https://github.com/k4rmakoma0/amoxtli-md-viewer/issues` |
 | Marketing URL | `https://amoxtli.alananaya.dev/` |
 | Copyright | `2026 Alan Anaya` |
 | Privacy Policy URL | `https://amoxtli.alananaya.dev/privacy/` |
 
 ## Español (México)
+
+**Name**
+
+```text
+Amoxtli: Visor de Markdown
+```
 
 **Subtitle**
 
@@ -62,10 +67,16 @@ Amoxtli no tiene cuentas, anuncios ni rastreo. Es gratuito y de código abierto,
 **Keywords**
 
 ```text
-md,lector,visor,vista previa,readme,notas,documentos,texto,índice,carpeta
+md,lector,vista previa,readme,notas,documentos,texto,índice,carpeta
 ```
 
 ## English (U.S.)
+
+**Name**
+
+```text
+Amoxtli: Markdown Viewer
+```
 
 **Subtitle**
 
@@ -120,6 +131,12 @@ md,reader,preview,readme,notes,docs,documentation,text,outline,folder,formatted
 
 ## Français
 
+**Name**
+
+```text
+Amoxtli : Visualiseur Markdown
+```
+
 **Subtitle**
 
 ```text
@@ -168,10 +185,16 @@ Amoxtli n’a ni compte, ni publicité, ni suivi. Il est gratuit et open source,
 **Keywords**
 
 ```text
-md,lecteur,aperçu,readme,notes,documents,texte,sommaire,dossier,visualiseur
+md,lecteur,aperçu,readme,notes,documents,texte,sommaire,dossier
 ```
 
 ## Deutsch
+
+**Name**
+
+```text
+Amoxtli: Markdown-Viewer
+```
 
 **Subtitle**
 
@@ -226,6 +249,12 @@ md,reader,vorschau,readme,notizen,dokumente,text,inhalt,ordner,betrachter
 
 ## Italiano
 
+**Name**
+
+```text
+Amoxtli: Lettore Markdown
+```
+
 **Subtitle**
 
 ```text
@@ -274,10 +303,16 @@ Amoxtli non ha account, pubblicità né tracciamento. È gratuito e open source 
 **Keywords**
 
 ```text
-md,lettore,anteprima,readme,note,documenti,testo,indice,cartella,visualizzatore
+md,anteprima,readme,note,documenti,testo,indice,cartella,visualizzatore
 ```
 
 ## Português (Brasil)
+
+**Name**
+
+```text
+Amoxtli: Visualizador Markdown
+```
 
 **Subtitle**
 
@@ -327,10 +362,16 @@ O Amoxtli não tem contas, anúncios nem rastreamento. É gratuito e de código 
 **Keywords**
 
 ```text
-md,leitor,visualizador,prévia,readme,notas,documentos,texto,índice,pasta
+md,leitor,prévia,readme,notas,documentos,texto,índice,pasta
 ```
 
 ## Русский
+
+**Name**
+
+```text
+Amoxtli: просмотр Markdown
+```
 
 **Subtitle**
 
@@ -380,10 +421,16 @@ Amoxtli — нативное приложение для чтения Markdown �
 **Keywords**
 
 ```text
-md,чтение,просмотр,readme,заметки,документы,текст,папка
+md,чтение,readme,заметки,документы,текст,папка
 ```
 
 ## 日本語
+
+**Name**
+
+```text
+Amoxtli: Markdownビューア
+```
 
 **Subtitle**
 
@@ -433,10 +480,16 @@ Amoxtliにはアカウント、広告、トラッキングはありません。M
 **Keywords**
 
 ```text
-md,リーダー,ビューア,プレビュー,readme,メモ,書類,目次
+md,リーダー,プレビュー,readme,メモ,書類,目次
 ```
 
 ## 한국어
+
+**Name**
+
+```text
+Amoxtli: Markdown 뷰어
+```
 
 **Subtitle**
 
@@ -486,10 +539,16 @@ Amoxtli에는 계정, 광고, 추적이 없습니다. MIT 라이선스의 무료
 **Keywords**
 
 ```text
-md,리더,뷰어,미리보기,readme,메모,문서,목차,폴더
+md,리더,미리보기,readme,메모,문서,목차,폴더
 ```
 
 ## 简体中文
+
+**Name**
+
+```text
+Amoxtli: Markdown 查看器
+```
 
 **Subtitle**
 
@@ -539,10 +598,16 @@ Amoxtli 没有账户、广告或跟踪。它免费且开源，采用 MIT 许可�
 **Keywords**
 
 ```text
-md,阅读器,查看器,预览,readme,笔记,文档,目录,文件夹
+md,阅读器,预览,readme,笔记,文档,目录,文件夹
 ```
 
 ## 繁體中文
+
+**Name**
+
+```text
+Amoxtli: Markdown 檢視器
+```
 
 **Subtitle**
 
@@ -592,5 +657,5 @@ Amoxtli 沒有帳號、廣告或追蹤。它免費且開源，採用 MIT 授權�
 **Keywords**
 
 ```text
-md,閱讀器,檢視器,預覽,readme,筆記,文件,目錄,檔案夾
+md,閱讀器,預覽,readme,筆記,文件,目錄,檔案夾
 ```
