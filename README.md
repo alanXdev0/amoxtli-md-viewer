@@ -102,6 +102,10 @@ Para App Store, crea primero la app en App Store Connect con el mismo bundle ID.
 packaging/release.sh app-store
 ```
 
+## Privacidad
+
+Amoxtli no recopila datos. Ver la [política de privacidad](PRIVACY.md).
+
 ## Licencia
 
 [MIT](LICENSE)
