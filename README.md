@@ -79,6 +79,28 @@ xcodebuild -scheme Amoxtli -destination 'platform=macOS' build
 xcodebuild -scheme Amoxtli -destination 'platform=macOS' test
 ```
 
+## Publicar una versión
+
+`packaging/release.sh` parte de un commit limpio, corre los tests y usa `MARKETING_VERSION` como versión. Como número de build usa la cantidad de commits, así que los dos canales comparten el mismo.
+
+La firma usa los certificados que Xcode administra en la nube, así que basta con tener la cuenta del equipo en Xcode > Settings > Accounts. Lo único que hay que preparar, una sola vez, son las credenciales de notarización en el llavero:
+
+```bash
+xcrun notarytool store-credentials amoxtli-notary --apple-id <tu-apple-id> --team-id EWLRV4247C
+```
+
+Para Homebrew, este comando genera en `build/release` el zip notarizado y el cask. También imprime los pasos para publicarlos:
+
+```bash
+packaging/release.sh developer-id
+```
+
+Para App Store, crea primero la app en App Store Connect con el mismo bundle ID. Este comando sube el build:
+
+```bash
+packaging/release.sh app-store
+```
+
 ## Licencia
 
 [MIT](LICENSE)

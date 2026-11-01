@@ -3,12 +3,14 @@
 Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). Xcode 27, Swift 6.
 
 ## Identidad
-- Bundle ID: `dev.alananaya.amoxtlimd`
+
+- Bundle ID: `dev.alananaya.amoxtli`
 - Nombre en README/App Store: "Amoxtli: Markdown Viewer"
 - `PRODUCT_NAME` y `CFBundleDisplayName`: `Amoxtli` (sin dos puntos: el nombre del .app es un nombre de archivo)
 - Target/scheme: `Amoxtli`
 
 ## Reglas del proyecto
+
 - 100% nativo: solo Foundation, SwiftUI, AppKit, UniformTypeIdentifiers. Cero dependencias de terceros, sin WKWebView.
 - SwiftUI es la base. AppKit solo donde SwiftUI no alcance (ver Links), con un comentario que lo justifique.
 - MVVM, async/await, sin singletons.
@@ -18,6 +20,7 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). X
 - Errores explícitos: archivo vacío, UTF-8 inválido, archivo ilegible, bookmark obsoleto, carpeta sin markdowns (estado vacío con mensaje).
 
 ## Flujo de trabajo (Claude Code)
+
 - Si no existe `Amoxtli.xcodeproj`, PARA y pídeme que cree en Xcode un proyecto macOS App (SwiftUI, Swift, con tests) llamado `Amoxtli` con el bundle ID de arriba. No generes el .xcodeproj a mano ni agregues herramientas externas.
 - Verifica cada fase con:
   - `xcodebuild -scheme Amoxtli -destination 'platform=macOS' build`
@@ -27,12 +30,14 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). X
 - Commits pequeños por fase (mensaje en inglés, imperativo).
 
 ## Fases
+
 1. Archivo único + render
 2. Links + menús contextuales
 3. Carpeta + índice
 4. App predeterminada
 
 ## Parsing y render
+
 - `AttributedString(markdown:options:)` con `interpretedSyntax: .full` y `failurePolicy: .returnPartiallyParsedIfPossible`.
 - Agrupar runs por `PresentationIntent` hacia un modelo propio en `Domain/`: heading(level), paragraph, orderedList, unorderedList, listItem, blockQuote, codeBlock(languageHint), table, thematicBreak. Estilos inline desde `InlinePresentationIntent`, links desde `.link`.
 - Una vista SwiftUI pequeña por tipo de bloque. Tablas con `Grid`. Imágenes http(s) con `AsyncImage`.
@@ -40,17 +45,20 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). X
 - No asumas soporte GFM (tablas, strikethrough, task lists): verifícalo con tests y reporta qué funciona.
 
 ## Modos de apertura
+
 1. **Un archivo** (.md/.markdown desde Finder, Open With o ⌘O): `DocumentGroup(viewing:)`. La ventana muestra SOLO contenido e índice. NO hay lista de archivos.
 2. **Una carpeta** (File > Open Folder…, ⇧⌘O, `NSOpenPanel` con `canChooseDirectories`): ventana propia (`WindowGroup(for:)` con security-scoped bookmark `Data` como valor). `NavigationSplitView`: sidebar con lista de archivos, detalle con el contenido.
    - Escaneo recursivo con `FileManager`, SOLO .md y .markdown (extensión case-insensitive), agrupado por subcarpeta, omitiendo carpetas sin markdowns. Escaneo fuera del main actor. Orden alfabético localizado.
    - Restauración de ventanas con el bookmark.
 
 ## Índice (TOC)
+
 - Generado desde los headings del modelo, indentado por nivel, con ids únicos aunque se repitan títulos.
 - Panel con `.inspector(isPresented:)` en ambos modos. Ocultable con botón de toolbar y atajo de teclado; estado persistido con `@SceneStorage` o `@AppStorage`.
 - Click en una entrada: scroll animado al heading (`ScrollViewReader`). Respeta Reduce Motion.
 
 ## Links
+
 - Clasificador (enum en `Domain/`): http/https y mailto → sistema; ancla `#x` → scroll al heading; cualquier otro esquema → ignorar y avisar con un indicador discreto, nunca abrir en silencio.
 - Hover sobre un link: cursor `pointingHand` y pill en la esquina inferior izquierda con la URL completa (truncada al medio), estilo status bar de Safari. Desaparece al salir.
 - Menú contextual sobre un link:
@@ -61,6 +69,7 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). X
 - **Decision gate:** antes de implementar, haz un spike mínimo y verifica si SwiftUI `Text` expone hover por link y menú contextual por link. Si NO, renderiza los bloques de texto con un `NSViewRepresentable` sobre una subclase de `NSTextView` (`isEditable = false`, `isSelectable = true`): hover con `NSTrackingArea` + `mouseMoved` + `characterIndexForInsertion(at:)` leyendo el atributo `.link`, y menú con override de `menu(for:)`. Documenta en el README qué camino tomaste y por qué.
 
 ## App predeterminada para Markdown
+
 - Info.plist: `UTImportedTypeDeclarations` para `net.daringfireball.markdown` (extensiones md, markdown; conforma a `public.plain-text`) y `CFBundleDocumentTypes` con rol Viewer.
 - Al iniciar: si la app NO es la predeterminada (comparar `NSWorkspace.shared.urlForApplication(toOpen:)` con `Bundle.main.bundleURL`), mostrar alert propio "Usar Amoxtli para abrir archivos Markdown" con [Establecer como predeterminada] [Ahora no] y checkbox "No volver a preguntar" (UserDefaults).
 - Al aceptar: `NSWorkspace.shared.setDefaultApplication(at:toOpen:)` (async throws) para el UTType de Markdown. El sistema muestra su propia confirmación; maneja error y cancelación sin crashear.
@@ -68,6 +77,7 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). X
 - Encapsula `NSWorkspace` detrás de un protocolo mínimo (`WorkspaceServicing`) solo para testear.
 
 ## Diseño nativo (macOS 27 / Liquid Glass)
+
 - Componentes del sistema (toolbar, `NavigationSplitView`, inspector, menús, alerts) para heredar Liquid Glass automáticamente. Prohibido simular glass con Material/blur propios en el chrome.
 - El contenido NO es glass. El pill de URL y cualquier control flotante propio usan `glassEffect` dentro de `GlassEffectContainer`, con fallback sólido cuando `accessibilityReduceTransparency` esté activo.
 - Toolbar estándar, `ToolbarSpacer` para agrupar. Sin title bar custom.
@@ -76,10 +86,12 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). X
 - Accesibilidad: VoiceOver (labels en TOC, links y lista de archivos), Reduce Transparency, Reduce Motion, Increase Contrast. Todo operable por teclado.
 
 ## Sandbox / seguridad
+
 - App Sandbox con `com.apple.security.files.user-selected.read-only` y `com.apple.security.files.bookmarks.app-scope`. `com.apple.security.network.client` solo por imágenes remotas.
 - Sin telemetría. Validar todo input.
 
 ## Tests (XCTest)
+
 - `MarkdownDocument`: UTF-8 válido, vacío, bytes inválidos, archivo grande.
 - Parser → modelo: headings 1-6, listas anidadas, blockquote, code block con/sin lenguaje, tabla, estilos inline, link, input malformado.
 - `FolderScanner`: filtra .md/.markdown case-insensitive, ignora otros formatos, poda carpetas vacías, recursivo, carpeta vacía.
@@ -89,4 +101,5 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). X
 - ViewModels: estados loading/loaded/error.
 
 ## Open source
+
 - `LICENSE` MIT, `README.md` (descripción, features, screenshot placeholder, build con Xcode 27, decisión de links), `.gitignore` para Xcode.

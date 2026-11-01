@@ -1,0 +1,15 @@
+cask "amoxtli" do
+  version "@VERSION@"
+  sha256 "@SHA256@"
+
+  url "https://github.com/@REPO@/releases/download/v#{version}/Amoxtli-#{version}.zip"
+  name "Amoxtli"
+  desc "Native Markdown viewer"
+  homepage "https://github.com/@REPO@"
+
+  depends_on macos: :golden_gate
+
+  app "Amoxtli.app"
+
+  zap trash: "~/Library/Containers/@BUNDLE_ID@"
+end
