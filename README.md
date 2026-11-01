@@ -16,6 +16,7 @@ Visor de Markdown formateado para macOS 27. Gratuito y 100% open source (MIT). N
 - Al pasar el mouse sobre un link muestra su URL completa, como la barra de estado de Safari.
 - Menú contextual en links: abrir en la app predeterminada, "Abrir con" y copiar el enlace.
 - Avisa antes de abrir un link a un sitio que no conoce. Ver [Enlaces conocidos](#enlaces-conocidos).
+- Disponible en inglés, español, francés, alemán, italiano, portugués de Brasil, ruso, japonés, coreano y chino simplificado y tradicional.
 
 ## Soporte de Markdown
 

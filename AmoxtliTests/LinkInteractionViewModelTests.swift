@@ -186,7 +186,7 @@ final class LinkInteractionViewModelTests: XCTestCase {
             reason: .misleadingText(claimedHost: "apple.com")
         )
         let alert = LinkWarningAlert.makeAlert(for: warning)
-        XCTAssertEqual(alert.messageText, "Este enlace podría engañarte")
+        XCTAssertEqual(alert.messageText, String(localized: "Este enlace podría engañarte"))
         XCTAssertTrue(alert.informativeText.contains("apple.com"))
         XCTAssertTrue(alert.informativeText.contains("example.org"))
         XCTAssertFalse(alert.showsSuppressionButton)
@@ -194,7 +194,7 @@ final class LinkInteractionViewModelTests: XCTestCase {
 
     func testUnknownSiteAlertOffersToTrustIt() throws {
         let alert = LinkWarningAlert.makeAlert(for: LinkWarning(link: try url("https://example.org"), host: "example.org"))
-        XCTAssertEqual(alert.messageText, "Cuidado con este enlace")
+        XCTAssertEqual(alert.messageText, String(localized: "Cuidado con este enlace"))
         XCTAssertTrue(alert.showsSuppressionButton)
     }
 
@@ -203,7 +203,7 @@ final class LinkInteractionViewModelTests: XCTestCase {
         let alert = LinkWarningAlert.makeAlert(for: LinkWarning(link: link, host: "example.com"))
         XCTAssertTrue(alert.informativeText.contains("example.com"))
         XCTAssertTrue(alert.informativeText.contains("https://example.com/a"))
-        XCTAssertEqual(alert.buttons.map(\.title), ["Cancelar", "Abrir enlace"])
+        XCTAssertEqual(alert.buttons.map(\.title), [String(localized: "Cancelar"), String(localized: "Abrir enlace")])
         XCTAssertEqual(alert.buttons.map(\.keyEquivalent), ["\u{1b}", ""])
     }
 

@@ -224,11 +224,11 @@ final class MarkdownTextViewTests: XCTestCase {
         let (view, _) = try makeView("[apple.com](https://example.org)")
         let menu = view.menu(for: try event(.rightMouseDown, at: try point(ofText: "apple", in: view), in: view))
 
-        try invoke(menu?.items.first { $0.title == "Abrir en Web" })
+        try invoke(menu?.items.first { $0.title == String(localized: "Abrir en \("Web")") })
         try await waitForWarning()
         XCTAssertEqual(prompter.warnings, [try XCTUnwrap(misleadingWarning)])
 
-        try invoke(menu?.items.first { $0.title == "Abrir con" }?.submenu?.items.first)
+        try invoke(menu?.items.first { $0.title == String(localized: "Abrir con") }?.submenu?.items.first)
         for _ in 0..<100 where prompter.warnings.count < 2 {
             try await Task.sleep(for: .milliseconds(5))
         }
@@ -246,9 +246,9 @@ final class MarkdownTextViewTests: XCTestCase {
         let (view, _) = try makeView("[enlace](https://example.com/ruta)")
 
         let menu = view.menu(for: try event(.rightMouseDown, at: try point(ofText: "enlace", in: view), in: view))
-        XCTAssertEqual(titles(of: menu), ["Abrir en Web", "Abrir con", "Copiar enlace"])
+        XCTAssertEqual(titles(of: menu), [String(localized: "Abrir en \("Web")"), String(localized: "Abrir con"), String(localized: "Copiar enlace")])
 
-        let submenu = menu?.items.first { $0.title == "Abrir con" }?.submenu
+        let submenu = menu?.items.first { $0.title == String(localized: "Abrir con") }?.submenu
         XCTAssertEqual(submenu?.items.map(\.title), ["Another", "Web"])
         XCTAssertEqual(submenu?.items.map(\.state), [.off, .on])
         XCTAssertEqual(submenu?.items.compactMap(\.image?.size), [NSSize(width: 16, height: 16), NSSize(width: 16, height: 16)])
@@ -263,11 +263,11 @@ final class MarkdownTextViewTests: XCTestCase {
         let menu = view.menu(for: try event(.rightMouseDown, at: try point(ofText: "enlace", in: view), in: view))
         let expected = try XCTUnwrap(link)
 
-        try invoke(menu?.items.first { $0.title == "Copiar enlace" })
+        try invoke(menu?.items.first { $0.title == String(localized: "Copiar enlace") })
         XCTAssertEqual(pasteboard.string(forType: .string), expected.absoluteString)
 
-        try invoke(menu?.items.first { $0.title == "Abrir en Web" })
-        try invoke(menu?.items.first { $0.title == "Abrir con" }?.submenu?.items.first)
+        try invoke(menu?.items.first { $0.title == String(localized: "Abrir en \("Web")") })
+        try invoke(menu?.items.first { $0.title == String(localized: "Abrir con") }?.submenu?.items.first)
         for _ in 0..<100 where workspace.openedLinks.isEmpty || workspace.openedWithApplication.isEmpty {
             try await Task.sleep(for: .milliseconds(5))
         }
@@ -282,21 +282,21 @@ final class MarkdownTextViewTests: XCTestCase {
     func testUnsupportedLinkMenuCanOnlyCopy() throws {
         let (view, _) = try makeView("[enlace](ftp://example.com)")
         let menu = view.menu(for: try event(.rightMouseDown, at: try point(ofText: "enlace", in: view), in: view))
-        XCTAssertEqual(titles(of: menu), ["Enlace no admitido", "Copiar enlace"])
+        XCTAssertEqual(titles(of: menu), [String(localized: "Enlace no admitido"), String(localized: "Copiar enlace")])
         XCTAssertEqual(menu?.items.first?.isEnabled, false)
     }
 
     func testAnchorMenuOffersGoToSection() throws {
         let (view, _) = try makeView("[enlace](#uno)")
         let menu = view.menu(for: try event(.rightMouseDown, at: try point(ofText: "enlace", in: view), in: view))
-        XCTAssertEqual(titles(of: menu), ["Ir a la sección", "Copiar enlace"])
+        XCTAssertEqual(titles(of: menu), [String(localized: "Ir a la sección"), String(localized: "Copiar enlace")])
     }
 
     func testTextMenuHasCopyAndSelectAllButNotPaste() throws {
         let (view, _) = try makeView("texto seleccionado")
         view.setSelectedRange(NSRange(location: 0, length: 5))
         let menu = view.menu(for: try event(.rightMouseDown, at: try point(ofText: "texto", in: view), in: view))
-        XCTAssertEqual(titles(of: menu), ["Copiar", "Seleccionar todo"])
+        XCTAssertEqual(titles(of: menu), [String(localized: "Copiar"), String(localized: "Seleccionar todo")])
         XCTAssertEqual(menu?.items.first?.action, #selector(NSText.copy(_:)))
         XCTAssertEqual(menu?.items.last?.action, #selector(NSText.selectAll(_:)))
         XCTAssertFalse(menu?.items.contains { $0.action == #selector(NSText.paste(_:)) } ?? true)
